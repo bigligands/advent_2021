@@ -123,6 +123,7 @@ fn main() {
     );
 }
 
+#[derive(Debug)]
 struct BitCount {
     zero: u32,
     one: u32,
