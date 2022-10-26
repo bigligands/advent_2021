@@ -1,44 +1,40 @@
 #![allow(unused_variables)]
-use std::fs;
+use std::{collections::HashMap, fs};
 
 fn main() {
     const PATH: &str = "src/input.txt";
-    // let test_input = "3,4,3,1,2";
     let raw_input = match fs::read_to_string(PATH) {
         Ok(s) => s,
         Err(_) => panic!("Could not parse file {} into string.", PATH),
     };
-    let mut school_of_fish = parse_fish(&raw_input);
-    // let mut school_of_fish = parse_fish(&test_input);
-    println!("Initially there are {} fish", school_of_fish.len());
+    let mut school_of_fish = parse_fish_nums(&raw_input);
 
-    for i in 0..80 {
-        let mut new_fish_collection: Vec<LanternFish> = Vec::new();
-        for fish in &mut school_of_fish[..] {
-            let new_fish = fish.adjust_timer();
-            if let Some(baby_fish) = new_fish {
-                new_fish_collection.push(baby_fish);
-            }
-        }
-        school_of_fish.extend(new_fish_collection.into_iter());
+    for i in 0..256 {
+        adjust_day(&mut school_of_fish);
     }
 
-    // for i in 0..18 {
-    //     let mut new_fish_collection: Vec<LanternFish> = Vec::new();
-    //     for fish in &mut school_of_fish[..] {
-    //         let new_fish = fish.adjust_timer();
-    //         if let Some(baby_fish) = new_fish {
-    //             new_fish_collection.push(baby_fish);
-    //         }
-    //     }
-    //     school_of_fish.extend(new_fish_collection.into_iter());
-    // }
-    println!("After 80 days, there are now {} fish", school_of_fish.len());
+    let mut fish_counter = 0;
+    for i in 0..=8u8 {
+        let count = school_of_fish.get(&i).unwrap();
+        fish_counter += *count;
+    }
+    println!("Total fish: {}", fish_counter);
 }
 
-fn parse_fish(input: &str) -> Vec<LanternFish> {
+fn parse_fish_nums(input: &str) -> HashMap<u8, u64> {
+    let mut fish_catalog: HashMap<u8, u64> = HashMap::new();
+    for i in 0..8u8 {
+        fish_catalog.insert(i, 0);
+    }
+    // dictionary of {0: n, 1: n, 2: n} etc..
+
+    //# NOTE:
+    // looked up a hint for part 2 and saw it was possible to use an array with the len of possible timers
+    //      as a way to store fish counts, using the position as an indicator of the timer.
+    // incredibly clever concept to use the minimum possible representation
+    // allows for much faster execution and memory efficiency
+
     let split_input = input.split(',').collect::<Vec<&str>>();
-    let mut fish_collection: Vec<LanternFish> = Vec::new();
     for raw_timer in split_input {
         let fish_timer = match u8::from_str_radix(raw_timer.trim(), 10) {
             Ok(f) => f,
@@ -47,24 +43,35 @@ fn parse_fish(input: &str) -> Vec<LanternFish> {
                 continue;
             }
         };
-        fish_collection.push(LanternFish { timer: fish_timer });
+        fish_catalog
+            .entry(fish_timer)
+            .and_modify(|n| *n += 1)
+            .or_insert(0);
     }
-    fish_collection
+    fish_catalog
 }
 
-#[derive(Debug)]
-struct LanternFish {
-    timer: u8,
-}
+fn adjust_day(catalog: &mut HashMap<u8, u64>) {
+    let resetting = match catalog.get(&0u8) {
+        Some(v) => *v,
+        None => panic!("ahhh"),
+    };
 
-impl LanternFish {
-    fn adjust_timer(&mut self) -> Option<LanternFish> {
-        if self.timer > 0 {
-            self.timer -= 1;
-            None
-        } else {
-            self.timer = 6;
-            Some(LanternFish { timer: 8 })
-        }
+    for i in 1..=8u8 {
+        let transfer = match catalog.get(&i) {
+            Some(v) => *v,
+            None => 0,
+        };
+        catalog.insert(
+            i - 1u8,
+            match catalog.get(&i) {
+                Some(x) => *x,
+                None => 0,
+            },
+        );
     }
+    // 0's start back at 6, add to count from 7 descending
+    catalog.entry(6u8).and_modify(|x| *x += resetting);
+    // new fish start at 8, no other fish will be there
+    catalog.insert(8u8, resetting);
 }
