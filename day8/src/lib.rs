@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-#![allow(unused_variables)]
-
 pub fn parse_input(input: &str) -> Vec<Display<Vec<&str>>> {
     let mut display_collection: Vec<Display<Vec<&str>>> = Vec::new();
     for line in input.lines() {
