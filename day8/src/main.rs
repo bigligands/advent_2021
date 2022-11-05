@@ -7,7 +7,7 @@ fn main() {
     let mut sum = 0;
 
     for display in displays {
-        sum += display.decipher_unique_outputs();
+        sum += display.decipher_all_inputs();
     }
 
     println!("Sum of unique outputs: {sum}");
