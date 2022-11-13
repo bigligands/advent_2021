@@ -5,7 +5,7 @@ fn main() {
     let input_path = "input.txt";
     let input = fs::read_to_string(input_path).unwrap();
 
-    let a = input
+    let syntax_error_score = input
         .lines()
         .map(|line| {
             line.chars()
@@ -36,5 +36,5 @@ fn main() {
         })
         .sum::<u32>();
 
-    println!("{}", a);
+    println!("{}", syntax_error_score);
 }
