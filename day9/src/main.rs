@@ -57,6 +57,7 @@ fn collect_buffers<'a>(input_matrix: &'a Vec<Vec<u8>>) -> Vec<Buffer> {
 }
 
 impl<'a> Buffer<'a> {
+    // part 1
     fn scan_buffer_for_low_points(&'a self) -> u32 {
         let all_low_points: Vec<u8> = match self {
             Buffer::First(buff) => {
