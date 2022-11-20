@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::{collections::HashMap, collections::HashSet, fs};
+use std::{collections::HashSet, fs};
 
 fn main() {
     let input = fs::read_to_string("input.txt").unwrap();
@@ -12,10 +12,10 @@ fn main() {
         count += 1;
         grid.scan_for_reactions();
         grid.coordinate_stack.clear();
-        for g in &grid.grid {
-            println!("{:?}", g);
-        }
+
+        grid.grid.iter().for_each(|x| println!("{:?}", x));
         println!();
+
         if grid.flashes_this_cycle == 100 {
             println!("all flashed: {}", count);
             grid.flashes_this_cycle = 0;
@@ -59,25 +59,29 @@ impl OctopusGrid {
     // step up each value in the grid and collect the energy releases
     fn step(&mut self) {
         let mut new_rows = Vec::new();
-        for (row, current_values) in self.grid.iter().enumerate() {
-            let stepped_values = current_values
-                .iter()
-                .enumerate()
-                .map(|(i, value)| (i, (value + 1) % 10))
-                .map(|(i, value)| {
-                    if value == 0 {
-                        // no need to check for duplicate coordinates in first iteration
-                        self.coordinate_stack.insert((row, i)); // (row, column)
-                        self.flashes += 1; // tally of flashes
-                        self.queue += 1; // tally of scan cycles, will be reset after each cycle
-                        self.flashes_this_cycle += 1;
-                    }
-                    value
-                })
-                .collect::<Vec<u8>>();
-            new_rows.push(stepped_values);
-        }
+        let x = self // completely using iterators, no loops
+            .grid
+            .iter()
+            .enumerate()
+            .fold(Vec::new(), |mut coord, (i, x)| {
+                new_rows.push(x.iter().map(|x| (x + 1) % 10).collect::<Vec<_>>());
+                x.iter()
+                    .enumerate()
+                    .map(|(j, value)| (j, (value + 1) % 10))
+                    .for_each(|(k, value)| {
+                        if value == 0 {
+                            coord.push((i, k));
+                            self.flashes += 1; // tally of flashes
+                            self.queue += 1; // tally of scan cycles, will be reset after each cycle
+                            self.flashes_this_cycle += 1;
+                        }
+                    });
+                coord
+            });
         self.grid = new_rows;
+        x.iter().for_each(|x| {
+            self.coordinate_stack.insert(*x);
+        });
     }
 
     fn scan_for_reactions(&mut self) {
@@ -99,23 +103,21 @@ impl OctopusGrid {
             self.coordinate_stack.clear();
 
             // step diag by 1, retaining 10s
-            for (row, col) in flat {
-                match (self.grid[row][col]) + 1 {
-                    1 => self.grid[row][col] = 0, // stepping newly flashed positions
-
+            // for (row, col) in flat {
+            flat.iter()
+                .for_each(|(row, col)| match (self.grid[*row][*col]) + 1 {
+                    1 => self.grid[*row][*col] = 0, // stepping newly flashed positions
                     x => {
                         if x < 11 {
-                            self.grid[row][col] = x; // step with no flash
+                            self.grid[*row][*col] = x; // step with no flash
                         } else {
-                            self.grid[row][col] = 10;
+                            self.grid[*row][*col] = 10;
                         }
                     }
-                };
-            }
+                });
 
-            // scan for 10s
-            for row_index in 0..=9 {
-                for pos_index in 0..=9 {
+            (0..=9).into_iter().for_each(|row_index| {
+                (0..=9).into_iter().for_each(|pos_index| {
                     if self.grid[row_index][pos_index] == 10 {
                         self.queue += 1; // continue loop
                         self.flashes += 1; // count flashes
@@ -124,15 +126,17 @@ impl OctopusGrid {
                         self.flashes_this_cycle += 1;
                         self.grid[row_index][pos_index] = 0; // set 10s to 0s
                     }
-                }
-            }
+                })
+            })
         }
     }
 
     fn grab_adjacent_positions(pos: &(usize, usize)) -> Vec<(usize, usize)> {
         let mut adjacent_positions: Vec<(usize, usize)> = Vec::new();
-        for i in ((pos.0 as i32) - 1)..=((pos.0 as i32) + 1) {
-            for j in ((pos.1 as i32) - 1)..=((pos.1 as i32) + 1) {
+        let start = pos.0 as i32;
+        let end = pos.1 as i32;
+        (start - 1..=start + 1).for_each(|i| {
+            (end - 1..=end + 1).for_each(|j| {
                 if -1 < i
                     && i < 10
                     && -1 < j
@@ -141,8 +145,8 @@ impl OctopusGrid {
                 {
                     adjacent_positions.push((i as usize, j as usize));
                 }
-            }
-        }
+            })
+        });
         adjacent_positions
     }
 }
