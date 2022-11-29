@@ -6,8 +6,8 @@ use std::fs;
 
 fn main() {
     // let input = fs::read_to_string("test_input_1.txt").unwrap();
-    let input = fs::read_to_string("test_input_2.txt").unwrap();
-    // let input = fs::read_to_string("input.txt").unwrap();
+    // let input = fs::read_to_string("test_input_2.txt").unwrap();
+    let input = fs::read_to_string("input.txt").unwrap();
 
     let connections = input.lines().fold(HashMap::new(), |mut conn, line| {
         // connections has each cave as key and connections as Set
