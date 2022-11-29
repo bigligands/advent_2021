@@ -6,8 +6,8 @@ use std::fs;
 
 fn main() {
     // let input = fs::read_to_string("test_input_1.txt").unwrap();
-    // let input = fs::read_to_string("test_input_2.txt").unwrap();
-    let input = fs::read_to_string("input.txt").unwrap();
+    let input = fs::read_to_string("test_input_2.txt").unwrap();
+    // let input = fs::read_to_string("input.txt").unwrap();
 
     let connections = input.lines().fold(HashMap::new(), |mut conn, line| {
         // connections has each cave as key and connections as Set
@@ -28,7 +28,7 @@ fn main() {
     let mut paths = Vec::<String>::new();
     let mut completed_paths = Vec::new();
     let mut tails = Vec::new();
-    // let mut index = 0;
+    let mut count = 0;
 
     loop {
         let mut t: String;
@@ -38,15 +38,16 @@ fn main() {
             recent_tail = tails.last().cloned().unwrap();
             recent_tail.sort();
             recent_tail.dedup();
-            // println!("recent tail: {:?}", recent_tail);
+
             for tail in recent_tail {
                 match tail.as_str() {
                     "end" => continue,
                     _ => {}
                 }
+
                 let mut cached_connections = Vec::new();
                 for con in connections.get(&tail).unwrap() {
-                    if cached_connections.contains(&con.to_string()) {
+                    if cached_connections.contains(&con.as_bytes()) {
                         continue;
                     }
 
@@ -54,6 +55,9 @@ fn main() {
                         "start" => continue,
                         x => {}
                     }
+                    paths.sort();
+                    paths.dedup();
+
                     // get paths that end with tail
                     // push connections
                     let mut relevant_paths = paths
@@ -66,26 +70,21 @@ fn main() {
                         continue;
                     }
 
-                    for rp in relevant_paths {
-                        if rp.split(",").any(|x| {
-                            x.as_bytes() == con.as_bytes()
-                                && con.to_lowercase().as_bytes() == con.as_bytes()
-                        }) {
-                            // continue loop if trying to visit small cave twice
-                            // !TODO: change condition of continue to be >2 visits instead of >1
-                            continue;
-                        }
+                    let filtered_rps = filter_caves(relevant_paths);
+
+                    if filtered_rps.len() == 0 {
+                        continue;
+                    }
+                    for rp in filtered_rps {
                         let mut relevant_path = rp.clone();
                         relevant_path.push_str(",");
                         relevant_path.push_str(con.as_str());
                         new_paths.push(relevant_path.to_string());
                     }
-                    // copy all of the paths with the new connections, wipe the old paths
-                    cached_connections.push(con.to_string());
+                    cached_connections.push(con.as_bytes());
                 }
             }
-            new_paths.sort();
-            new_paths.dedup();
+            // copy all of the paths with the new connections, wipe the old paths
             paths = new_paths.clone();
             for p in new_paths {
                 if p.split(",").last().unwrap().as_bytes() == b"end" {
@@ -108,12 +107,36 @@ fn main() {
             .map(|x| x.map(|x| x.to_string()).last().unwrap())
             .collect::<Vec<_>>();
 
-        tails.push(tail.to_owned());
         if tail.iter().all(|x| x.as_bytes() == b"end") {
             // if every cave visited was the ending, break the loop
             break;
         }
+        tails.push(tail);
+        count += 1;
+        println!("loop {}", count);
     }
-    println!("completed paths: {:?}", completed_paths);
+    // println!("completed paths: {:?}", completed_paths);
     println!("{} paths found", completed_paths.len());
+}
+
+fn filter_caves(caves: Vec<&String>) -> Vec<String> {
+    let mut filtered_caves = Vec::new();
+    for cave in caves {
+        let mut small_caves = cave
+            .split(",")
+            .filter(|c| c.to_lowercase().as_bytes() == c.as_bytes())
+            .map(|c| c.to_string())
+            .collect::<Vec<_>>();
+        let before_count = small_caves.len();
+        small_caves.sort();
+        small_caves.dedup();
+        let after_count = small_caves.len();
+        if before_count - after_count > 1 {
+            continue;
+        } else {
+            filtered_caves.push(cave.to_string());
+        }
+    }
+
+    filtered_caves
 }
